@@ -8,18 +8,27 @@ fetchData();
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('name').value;
-  const _id = document.getElementById('_id').value;
+  const age = document.getElementById('age').value;
+  const gender = document.getElementById('gender').value;
+  const picture = document.getElementById('picture').files[0];
 
-  const data = { name }; // Assuming only name field
+  const dataSet = new FormData(); // Use FormData for multipart uploads
+  dataSet.append('name', name);
+  dataSet.append('age', age);
+  dataSet.append('gender', gender);
+  dataSet.append('picture', picture);
+
+  const _id = document.getElementById('_id').value;
 
   const method = _id ? 'PUT' : 'POST';
   const url = _id ? `http://localhost:3000/data/${_id}` : 'http://localhost:3000/data';
+
 
   try {
     const response = await fetch(url, {
       method, 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data) 
+      body: JSON.stringify(dataSet) 
     });
 
     if (response.ok) {
@@ -51,12 +60,27 @@ async function fetchData() {
   
         const nameElement = document.createElement('p');
         nameElement.textContent = item.name;
+
+        const ageElement = document.createElement('p');
+        ageElement.textContent = item.age;
+
+        const genderElement = document.createElement('p');
+        genderElement.textContent = item.gender;
+
+        if (item.picture) { // Check if there's an image reference
+          const pictureElement = document.createElement('img');
+          pictureElement.src = `/image/${item.picture}`; // Assuming you have an image route
+          pictureElement.alt = "Profile Picture";
+          pictureElement.style.width = "50px"; 
+          pictureElement.style.height = "50px"; 
+          dataItem.appendChild(pictureElement); 
+        }
   
         // Create edit button
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.className = 'edit-btn';
-        editBtn.onclick = () => editData(item._id, item.name);
+        editBtn.onclick = () => editData(item._id, item.name, item.age, item.gender);
   
         // Create delete button
         const deleteBtn = document.createElement('button');
@@ -66,6 +90,8 @@ async function fetchData() {
   
         // Append elements to the data item
         dataItem.appendChild(nameElement);
+        dataItem.appendChild(ageElement);
+        dataItem.appendChild(genderElement);
         dataItem.appendChild(editBtn);
         dataItem.appendChild(deleteBtn);
   
@@ -78,9 +104,11 @@ async function fetchData() {
     }
   }
 
-  function editData(id, name) {
+  function editData(id, name, age, gender) {
     document.getElementById('_id').value = id;
     document.getElementById('name').value = name;
+    document.getElementById('age').value = age;
+    document.getElementById('gender').value = gender;
   }
   
   async function deleteData(id) {
