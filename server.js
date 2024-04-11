@@ -59,7 +59,7 @@ app.post('/data', upload.single('file'), async (req, res, next) => {
       name: req.body.name,
       age: req.body.age,
       gender: req.body.gender,
-      imagePath: '/uploads/${file.filename}' 
+      imagePath: '/uploads/' + req.file.filename 
     };
 
     const insertResult = await collection.insertOne(doc);
