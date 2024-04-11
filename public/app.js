@@ -2,7 +2,7 @@ const form = document.getElementById('dataForm');
 const dataList = document.getElementById('dataList');
 
 // Fetch existing data
-fetchData(); 
+fetchData(); // Assuming you have this function defined
 
 // Form Submission
 form.addEventListener('submit', async (e) => {
@@ -10,38 +10,37 @@ form.addEventListener('submit', async (e) => {
   const name = document.getElementById('name').value;
   const age = document.getElementById('age').value;
   const gender = document.getElementById('gender').value;
-  const picture = document.getElementById('picture').files[0];
+  const file = document.getElementById('file').files[0];
+ 
 
   const dataSet = new FormData(); // Use FormData for multipart uploads
   dataSet.append('name', name);
   dataSet.append('age', age);
   dataSet.append('gender', gender);
-  dataSet.append('picture', picture);
+  dataSet.append('file', file);
 
-  const _id = document.getElementById('_id').value;
+    const _id = document.getElementById('_id').value;
+    const method = _id ? 'PUT' : 'POST';
+    const url = _id ? `http://localhost:3000/data/${_id}` : 'http://localhost:3000/data';
 
-  const method = _id ? 'PUT' : 'POST';
-  const url = _id ? `http://localhost:3000/data/${_id}` : 'http://localhost:3000/data';
+    try {
+      const response = await fetch(url, {
+        method: method, 
+        body: dataSet
+      });
 
-
-  try {
-    const response = await fetch(url, {
-      method, 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataSet) 
-    });
-
-    if (response.ok) {
-      console.log('Success!');
-      fetchData(); 
-      form.reset();
-      document.getElementById('_id').value = ''; // Clear the hidden ID field
-    } else {
-      console.error('Error:', response.statusText);
-    }
-  } catch (err) {
-    console.error('Fetch Error:', err);
-  }  
+      if (response.ok) {
+        console.log('Success!');
+        fetchData(); 
+        form.reset();
+        document.getElementById('_id').value = ''; // Clear the hidden ID field
+      } else {
+        console.error('Error:', response.statusText);
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err);
+    }  
+  
 });
 
 async function fetchData() {
@@ -59,21 +58,19 @@ async function fetchData() {
         dataItem.className = 'data-item';
   
         const nameElement = document.createElement('p');
-        nameElement.textContent = item.name;
+        nameElement.textContent = `Name: ${item.name}`;
 
         const ageElement = document.createElement('p');
-        ageElement.textContent = item.age;
+        ageElement.textContent = `Age: ${item.age}`;
 
         const genderElement = document.createElement('p');
-        genderElement.textContent = item.gender;
+        genderElement.textContent = `Gender: ${item.gender}`;
 
-        if (item.picture) { // Check if there's an image reference
-          const pictureElement = document.createElement('img');
-          pictureElement.src = `/image/${item.picture}`; // Assuming you have an image route
-          pictureElement.alt = "Profile Picture";
-          pictureElement.style.width = "50px"; 
-          pictureElement.style.height = "50px"; 
-          dataItem.appendChild(pictureElement); 
+        if (item.imagePath) {
+          const imageElement = document.createElement('img');
+          imageElement.src = item.imagePath; 
+          imageElement.alt = 'Profile Image';
+          dataItem.appendChild(imageElement);
         }
   
         // Create edit button
@@ -92,6 +89,7 @@ async function fetchData() {
         dataItem.appendChild(nameElement);
         dataItem.appendChild(ageElement);
         dataItem.appendChild(genderElement);
+        
         dataItem.appendChild(editBtn);
         dataItem.appendChild(deleteBtn);
   

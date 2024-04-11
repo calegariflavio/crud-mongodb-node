@@ -69,6 +69,11 @@ h1 {
     margin-bottom: 5px;
 }
 
+.data-item img {
+    max-width: 300px;
+    max-height: 300px;
+}
+
 .edit-btn, .delete-btn {
     background-color: #4CAF50;  /* Green for edit */
     color: white;

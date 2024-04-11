@@ -7,7 +7,7 @@
 <body>
   <h1>My CRUD App</h1>
 
-  <form id="dataForm" enctype="multipart/form-data"> 
+  <form id="dataForm" action="/data" method="POST" enctype="multipart/form-data"> 
     <input type="text" id="name" name="name" placeholder="Name"><br>
     <input type="number" id="age" name="age" placeholder="Age"><br> 
     <label for="gender">Gender:</label>
@@ -16,7 +16,7 @@
       <option value="female">Female</option>
       <option value="other">Other</option>
     </select><br>
-    <input type="file" id="picture" name="picture" accept="image/*"><br> 
+    <input type="file" id="file" name="file"><br> 
     <input type="hidden" id="_id"> 
     <button type="submit">Save</button>
   </form>

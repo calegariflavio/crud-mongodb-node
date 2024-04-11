@@ -1,21 +1,31 @@
 const express = require('express');
 const multer = require('multer');
-const GridFSBucket = require('mongodb').GridFSBucket;
 const cors = require('cors');
+const path = require('path');
+const app = express();
+
+app.use(cors());
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      cb(null, 'uploads/') // File storage destination
+  },
+  filename: function (req, file, cb) {
+      cb(null, file.originalname) // Use original file name
+  }
+})
+
+// Multer instance
+const upload = multer({ storage: storage });
+
+//Database Connection
 const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID; // For working with MongoDB IDs
 
 const DB_URI = "mongodb+srv://flavioescalegari:199408@cluster0.lbnjm3k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"; // Replace with your connection URI
 const DATABASE_NAME = 'Cluster0'; // Replace with your database name
 const COLLECTION_NAME = 'crud'; // Replace with your collection name
-
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-// Multer configuration
-const storage = multer.memoryStorage(); // Hold the file temporarily in memory 
-const upload = multer({ storage: storage });
 
 const client = new MongoClient(DB_URI);
 
@@ -32,52 +42,47 @@ connectToDatabase();
 
 // --- CRUD Routes ---
 
-app.post('/data', upload.single('picture'), async (req, res) => {
-  console.log("Incoming Request:", req.body, req.file);
-    try {
-        const db = client.db(DATABASE_NAME);
-        const collection = db.collection(COLLECTION_NAME);
 
-        // Process the image file (if uploaded)
-        let pictureId = null;
-        if (req.file) {
-            const bucket = new GridFSBucket(db);
-            const uploadStream = bucket.openUploadStream(req.file.originalname);
-            uploadStream.id = req.file.id; 
-            req.file.buffer.pipe(uploadStream);
+app.post('/data', upload.single('file'), async (req, res, next) => {
+  const file = req.file;
+  if (!file) {
+    const error = new Error('Please upload a file');
+    error.httpStatusCode = 400;
+    return next(error);
+  }
 
-            await new Promise((resolve, reject) => {
-                uploadStream.on('finish', resolve);
-                uploadStream.on('error', reject);
-            });
+  try {
+    const db = client.db(DATABASE_NAME);
+    const collection = db.collection(COLLECTION_NAME);
 
-            pictureId = uploadStream.id; 
-        }
+    const doc = {
+      name: req.body.name,
+      age: req.body.age,
+      gender: req.body.gender,
+      imagePath: '/uploads/${file.filename}' 
+    };
 
-        // Updated data to include image reference
-        const data = {
-            ...req.body,
-            picture: pictureId 
-        };
+    const insertResult = await collection.insertOne(doc);
 
-        const result = await collection.insertOne(data);
-        res.status(201).json({ message: 'Data created', id: result.insertedId }); 
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to create data' });
-    }
+    res.send('File uploaded and data saved successfully');
+
+  } catch (error) { 
+    console.error("Error saving data to database:", error);
+    next(error); // Pass error for appropriate handling
+  }
 });
   
   // Read All (GET):
+  // Fetch all data
   app.get('/data', async (req, res) => {
     try {
-      const db = client.db(DATABASE_NAME);
-      const collection = db.collection(COLLECTION_NAME);
-      const cursor = await collection.find().toArray(); 
-      res.json(cursor);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch data' });
+        const db = client.db(DATABASE_NAME);
+        const collection = db.collection(COLLECTION_NAME);
+        const data = await collection.find().toArray();
+        res.json(data); 
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        res.status(500).send("Error fetching data");
     }
   });
   
@@ -101,29 +106,38 @@ app.post('/data', upload.single('picture'), async (req, res) => {
     }
   });
   
-  // Update (PUT by ID):
-  app.put('/data/:id', async (req, res) => {
-    const id = req.params.id;
-    const updateData = req.body; 
-  
+  app.put('/data/:id', upload.single('file'), async (req, res) => {
+    const file = req.file;
+    const { id } = req.params;
+
     try {
-      const db = client.db(DATABASE_NAME);
-      const collection = db.collection(COLLECTION_NAME);
-      const result = await collection.updateOne(
-        { _id: ObjectID(id) },
-        { $set: updateData } 
-      );
-  
-      if (result.matchedCount > 0) {
-        res.json({ message: 'Data updated' });
-      } else {
-        res.status(404).json({ error: 'Data not found' });
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to update data' });
+        const db = client.db(DATABASE_NAME);
+        const collection = db.collection(COLLECTION_NAME);
+
+        const updateData = {
+            name: req.body.name,
+            age: req.body.age,
+            gender: req.body.gender
+        };
+        if (file) {
+            updateData.imagePath = file.path;
+        }
+
+        const updateResult = await collection.updateOne(
+            { _id: ObjectID(id) },
+            { $set: updateData }
+        );
+
+        if (updateResult.modifiedCount > 0) {
+            res.send("Data updated successfully");
+        } else {
+            res.status(404).send("Data not found");
+        }
+    } catch (error) {
+        console.error("Error updating data:", error);
+        res.status(500).send("Error updating data");
     }
-  });
+});
   
   // Delete (DELETE by ID):
   app.delete('/data/:id', async (req, res) => {
